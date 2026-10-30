@@ -59,6 +59,17 @@ bytes, 1024 Unicode scalar values, and no normalization. Owned strings, raw
 UTF-8 bytes, and integer code-point arrays have dedicated entry points so that
 invalid external representations can be rejected at their decoding boundary.
 
+## Try a hidden password prompt
+
+Run the local example from the repository root:
+
+```text
+cargo run --example password_prompt
+```
+
+It reads the password without echoing it to the terminal and processes it with
+the default limits. It does not authenticate, hash, or print the password.
+
 ## Behavior at a glance
 
 - Empty strings and whitespace are preserved.
@@ -80,7 +91,8 @@ cargo test --all-features
 cargo doc --no-deps
 ```
 
-The core has no platform-specific runtime dependency. CI also checks
+The library core has no platform-specific runtime dependency. The hidden-input
+example uses `rpassword` as a development dependency. CI also checks
 `wasm32-unknown-unknown`; a local WebAssembly build requires that target to be
 installed first.
 
@@ -134,4 +146,3 @@ the normalization dependency or comparing results with older Python versions.
 The source assignment did not include a project license. The project owner must
 select and add a license before publishing the crate or distributing it for
 third-party reuse.
-
