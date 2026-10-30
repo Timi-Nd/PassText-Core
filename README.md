@@ -74,6 +74,7 @@ python -m pytest -q
 - [API guide](docs/api.md)
 - [Architecture and ownership](docs/architecture.md)
 - [Python parity contract](docs/python-parity.md)
+- [Performance methodology and results](docs/performance.md)
 - [Security guarantees and limitations](docs/security.md)
 - [Unicode compatibility](docs/unicode-compatibility.md)
 - [Testing and portability](docs/testing.md)

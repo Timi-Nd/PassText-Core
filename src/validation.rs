@@ -3,7 +3,9 @@
 use std::borrow::Cow;
 
 use crate::normalization::apply_normalization;
-use crate::unicode::{codepoint_count, contains_non_ascii, decode_codepoints};
+use crate::unicode::{
+    bounded_codepoint_count, contains_non_ascii, decode_validated_codepoints, validate_codepoints,
+};
 use crate::{
     LimitUnit, PassTextConfig, PassTextError, PreparedPassword, ProcessingStage, TextMetadata,
 };
@@ -61,7 +63,16 @@ pub fn process_codepoints(
             LimitUnit::UnicodeCodepoints,
         ));
     }
-    let decoded = decode_codepoints(password)?;
+    // Validate the complete external representation before classifying its
+    // byte size. This preserves invalid-Unicode precedence without allocating.
+    let measured_utf8_bytes = validate_codepoints(password)?;
+    let utf8_bytes =
+        measured_utf8_bytes.ok_or(limit_error(ProcessingStage::Original, LimitUnit::Utf8Bytes))?;
+    if utf8_bytes > config.max_utf8_bytes() {
+        return Err(limit_error(ProcessingStage::Original, LimitUnit::Utf8Bytes));
+    }
+
+    let decoded = decode_validated_codepoints(password, utf8_bytes)?;
     process_owned_password(decoded, config)
 }
 
@@ -70,13 +81,9 @@ fn process_cow<'a>(
     config: PassTextConfig,
 ) -> Result<PreparedPassword<'a>, PassTextError> {
     let original = password.as_ref();
-    let original_codepoints = codepoint_count(original);
-    if original_codepoints > config.max_codepoints() {
-        return Err(limit_error(
-            ProcessingStage::Original,
-            LimitUnit::UnicodeCodepoints,
-        ));
-    }
+    let original_codepoints = bounded_codepoint_count(original, config.max_codepoints()).ok_or(
+        limit_error(ProcessingStage::Original, LimitUnit::UnicodeCodepoints),
+    )?;
 
     // `str` is valid UTF-8, so its byte length is the strict encoded length.
     let original_utf8_bytes = original.len();
@@ -86,13 +93,9 @@ fn process_cow<'a>(
 
     let normalized = apply_normalization(original, config.normalization());
     let processed = normalized.as_deref().unwrap_or(original);
-    let processed_codepoints = codepoint_count(processed);
-    if processed_codepoints > config.max_codepoints() {
-        return Err(limit_error(
-            ProcessingStage::Processed,
-            LimitUnit::UnicodeCodepoints,
-        ));
-    }
+    let processed_codepoints = bounded_codepoint_count(processed, config.max_codepoints()).ok_or(
+        limit_error(ProcessingStage::Processed, LimitUnit::UnicodeCodepoints),
+    )?;
 
     let processed_utf8_bytes = if normalized.is_some() {
         let size = processed.len();
@@ -157,6 +160,74 @@ mod tests {
                 unit: LimitUnit::UnicodeCodepoints
             }
         );
+    }
+
+    #[test]
+    fn multibyte_codepoint_boundary_is_exact() {
+        let config = PassTextConfig::new(64, 3, NormalizationMode::None).unwrap();
+        let accepted = process_password("é🙂a", config).unwrap();
+        assert_eq!(accepted.metadata().original_codepoints(), 3);
+
+        assert_eq!(
+            process_password("é🙂ab", config).unwrap_err(),
+            PassTextError::ProcessingLimit {
+                stage: ProcessingStage::Original,
+                unit: LimitUnit::UnicodeCodepoints
+            }
+        );
+    }
+
+    #[test]
+    fn all_entry_points_preserve_oversize_classification() {
+        let config = PassTextConfig::new(64, 2, NormalizationMode::None).unwrap();
+        let expected = PassTextError::ProcessingLimit {
+            stage: ProcessingStage::Original,
+            unit: LimitUnit::UnicodeCodepoints,
+        };
+
+        assert_eq!(process_password("abc", config).unwrap_err(), expected);
+        assert_eq!(
+            process_owned_password("abc".to_owned(), config).unwrap_err(),
+            expected
+        );
+        assert_eq!(process_utf8(b"abc", config).unwrap_err(), expected);
+        assert_eq!(
+            process_codepoints(&[0x61, 0x62, 0x63], config).unwrap_err(),
+            expected
+        );
+    }
+
+    #[test]
+    fn utf8_boundary_remains_strict_before_text_processing() {
+        let config = PassTextConfig::new(64, 1, NormalizationMode::None).unwrap();
+        let invalid_after_oversize_prefix = [b'a', b'b', 0xff];
+        assert_eq!(
+            process_utf8(&invalid_after_oversize_prefix, config).unwrap_err(),
+            PassTextError::InvalidUnicode
+        );
+    }
+
+    #[test]
+    fn codepoint_input_validates_all_scalars_before_byte_classification() {
+        let config = PassTextConfig::new(1, 2, NormalizationMode::None).unwrap();
+        assert_eq!(
+            process_codepoints(&[0x00e9], config).unwrap_err(),
+            PassTextError::ProcessingLimit {
+                stage: ProcessingStage::Original,
+                unit: LimitUnit::Utf8Bytes
+            }
+        );
+        assert_eq!(
+            process_codepoints(&[0x00e9, 0xd800], config).unwrap_err(),
+            PassTextError::InvalidUnicode
+        );
+    }
+
+    #[test]
+    fn maximum_limits_do_not_overflow() {
+        let config = PassTextConfig::new(usize::MAX, usize::MAX, NormalizationMode::None).unwrap();
+        let prepared = process_password("é🙂", config).unwrap();
+        assert_eq!(prepared.metadata().original_codepoints(), 2);
     }
 
     #[test]

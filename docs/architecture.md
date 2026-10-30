@@ -25,6 +25,14 @@ private so that validation cannot be bypassed accidentally.
 6. Measure and enforce processed limits.
 7. Construct immutable metadata and a prepared representation.
 
+Code-point limits use bounded traversal: validation stops immediately after
+observing the first scalar beyond the configured maximum, without computing
+`maximum + 1`. This preserves correct behavior at `usize::MAX`. External UTF-8
+bytes are still validated completely before they become `str`; otherwise an
+invalid suffix could be misclassified as a size error. Integer code-point
+arrays use their O(1) element count first, then validate every scalar and
+measure UTF-8 bytes before allocating a `String`.
+
 The order mirrors the Python behavioral reference where Rust can represent the
 same input. Rust `&str` removes the Python-only runtime type and surrogate
 states; byte and integer-array entry points preserve explicit failure behavior

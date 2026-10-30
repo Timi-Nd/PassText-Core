@@ -91,7 +91,7 @@ impl fmt::Debug for PreparedPassword<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{process_password, NormalizationMode};
+    use crate::{process_owned_password, process_password, NormalizationMode};
 
     use super::*;
 
@@ -110,5 +110,42 @@ mod tests {
         let prepared = process_password("e\u{301}", config).unwrap();
         assert_eq!(prepared.original_text(), "e\u{301}");
         assert_eq!(prepared.processed_text(), "é");
+    }
+
+    #[test]
+    fn unchanged_borrowed_text_reuses_the_input_storage() {
+        let input = "already-normalized-é";
+        let config = PassTextConfig::default().with_normalization(NormalizationMode::Nfc);
+        let prepared = process_password(input, config).unwrap();
+
+        assert_eq!(prepared.original_text().as_ptr(), input.as_ptr());
+        assert_eq!(
+            prepared.processed_text().as_ptr(),
+            prepared.original_text().as_ptr()
+        );
+    }
+
+    #[test]
+    fn owned_text_moves_without_copying_its_buffer() {
+        let input = String::from("owned-password-text");
+        let input_pointer = input.as_ptr();
+        let prepared = process_owned_password(input, PassTextConfig::default()).unwrap();
+
+        assert_eq!(prepared.original_text().as_ptr(), input_pointer);
+        assert_eq!(prepared.processed_text().as_ptr(), input_pointer);
+    }
+
+    #[test]
+    fn changed_normalization_keeps_original_and_one_distinct_result() {
+        let input = "e\u{301}";
+        let config = PassTextConfig::default().with_normalization(NormalizationMode::Nfc);
+        let prepared = process_password(input, config).unwrap();
+
+        assert_eq!(prepared.original_text().as_ptr(), input.as_ptr());
+        assert_ne!(
+            prepared.processed_text().as_ptr(),
+            prepared.original_text().as_ptr()
+        );
+        assert!(prepared.metadata().normalization_changed());
     }
 }

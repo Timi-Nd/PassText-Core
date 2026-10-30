@@ -15,6 +15,10 @@ test passwords in production-shaped code.
 - Borrowed input remains borrowed, and normalization allocates only when a
   changed representation must be retained.
 
+Storage-reuse tests verify that borrowed text keeps the caller's buffer, owned
+text moves without cloning its allocation, already-normalized NFC text reuses
+the original representation, and changed NFC retains one distinct result.
+
 Text access is nevertheless intentional. `original_text()` and
 `processed_text()` return the values required by downstream password analysis.
 Application code must not log, format, serialize, or persist those returned
@@ -46,6 +50,9 @@ category only and should not attach the rejected value as structured context.
 Panics are not part of the ordinary invalid-input contract: malformed UTF-8,
 invalid scalar arrays, limit violations, and invalid indices return typed
 errors.
+
+Property-test inputs use wrappers with redacted `Debug` implementations, and
+the differential runner identifies failures only by corpus index and mode.
 
 ## Out of scope
 

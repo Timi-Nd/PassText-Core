@@ -145,6 +145,20 @@
       "expected_error": "ProcessingLimitError"
     },
     {
+      "name": "nfc_processed_codepoint_limit_exceeded",
+      "operation": "process_error",
+      "input": "\u0344",
+      "config": {"max_utf8_bytes": 8, "max_codepoints": 1, "normalization": "nfc"},
+      "expected_error": "ProcessingLimitError"
+    },
+    {
+      "name": "nfc_processed_utf8_limit_exceeded",
+      "operation": "process_error",
+      "input": "\u0344",
+      "config": {"max_utf8_bytes": 3, "max_codepoints": 2, "normalization": "nfc"},
+      "expected_error": "ProcessingLimitError"
+    },
+    {
       "name": "isolated_surrogate",
       "operation": "process_error",
       "input_codepoints": [55296],

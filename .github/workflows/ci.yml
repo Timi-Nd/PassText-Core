@@ -59,4 +59,9 @@ jobs:
           cache-dependency-path: passtext/pyproject.toml
       - run: python -m pip install -e ".[dev]"
       - run: python -m pytest -q
+      - name: Python-Rust differential parity
+        if: matrix.python-version == '3.14'
+        env:
+          PASSTEXT_PYTHON: python
+        run: cargo test --manifest-path ../Cargo.toml --test differential -- --ignored
 
