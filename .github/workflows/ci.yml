@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --all -- --check
+      - name: Lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Tests and shared portability vectors
+        run: cargo test --all-features
+      - name: Documentation
+        run: cargo doc --no-deps
+      - name: Release package
+        run: cargo package --locked
+
+  wasm:
+    name: WebAssembly check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - run: cargo check --target wasm32-unknown-unknown --all-features
+
+  python-reference:
+    name: Python reference (${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.14"]
+    defaults:
+      run:
+        working-directory: passtext
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: passtext/pyproject.toml
+      - run: python -m pip install -e ".[dev]"
+      - run: python -m pytest -q
+

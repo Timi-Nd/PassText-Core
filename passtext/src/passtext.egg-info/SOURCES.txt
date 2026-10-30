@@ -1,0 +1,7 @@
+pyproject.toml
+src/passtext/__init__.py
+src/passtext.egg-info/PKG-INFO
+src/passtext.egg-info/SOURCES.txt
+src/passtext.egg-info/dependency_links.txt
+src/passtext.egg-info/requires.txt
+src/passtext.egg-info/top_level.txt

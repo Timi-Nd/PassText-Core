@@ -1,0 +1,36 @@
+[package]
+name = "passtext-core"
+version = "0.1.0"
+edition = "2021"
+description = "Unicode-safe password text preparation with explicit normalization and indexing"
+readme = "README.md"
+repository = "https://github.com/Timi-Nd/PassText-Core"
+keywords = ["password", "unicode", "normalization", "security"]
+categories = ["text-processing"]
+include = [
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/README.md",
+    "/src/**",
+    "/tests/**",
+    "/benches/**",
+    "/docs/**",
+    "/passtext/tests/fixtures/rust_portability_vectors.json",
+]
+
+[dependencies]
+# Exact pin: 0.1.24 embeds Unicode 16.0.0, matching the CPython 3.14
+# reference environment. A floating 0.1 requirement can silently change NFC.
+unicode-normalization = "=0.1.24"
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[[bench]]
+name = "processing"
+harness = false
+
+[lints.rust]
+unsafe_code = "forbid"
+

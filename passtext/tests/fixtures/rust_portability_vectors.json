@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "unicode_representation": "JSON strings contain Unicode scalar values. Invalid scalar code points are represented as integer arrays, never as JSON strings.",
+  "cases": [
+    {
+      "name": "ascii_basic",
+      "operation": "process",
+      "input": "abc123",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": "abc123",
+        "original_codepoints": 6,
+        "original_utf8_bytes": 6,
+        "processed_codepoints": 6,
+        "processed_utf8_bytes": 6,
+        "contains_non_ascii": false,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "empty_input",
+      "operation": "process",
+      "input": "",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": "",
+        "original_codepoints": 0,
+        "original_utf8_bytes": 0,
+        "processed_codepoints": 0,
+        "processed_utf8_bytes": 0,
+        "contains_non_ascii": false,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "whitespace_preserved",
+      "operation": "process",
+      "input": " a\nb ",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": " a\nb ",
+        "original_codepoints": 5,
+        "original_utf8_bytes": 5,
+        "processed_codepoints": 5,
+        "processed_utf8_bytes": 5,
+        "contains_non_ascii": false,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "accented_latin",
+      "operation": "process",
+      "input": "café",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": "café",
+        "original_codepoints": 4,
+        "original_utf8_bytes": 5,
+        "processed_codepoints": 4,
+        "processed_utf8_bytes": 5,
+        "contains_non_ascii": true,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "mixed_scripts",
+      "operation": "process",
+      "input": "AΓЖع中",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": "AΓЖع中",
+        "original_codepoints": 5,
+        "original_utf8_bytes": 10,
+        "processed_codepoints": 5,
+        "processed_utf8_bytes": 10,
+        "contains_non_ascii": true,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "emoji_sequence",
+      "operation": "process",
+      "input": "🙂👩‍💻",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected": {
+        "processed_text": "🙂👩‍💻",
+        "original_codepoints": 4,
+        "original_utf8_bytes": 15,
+        "processed_codepoints": 4,
+        "processed_utf8_bytes": 15,
+        "contains_non_ascii": true,
+        "normalization_changed": false,
+        "normalization": "none"
+      }
+    },
+    {
+      "name": "nfc_combining_changes",
+      "operation": "process",
+      "input": "e\u0301",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "nfc"},
+      "expected": {
+        "processed_text": "é",
+        "original_codepoints": 2,
+        "original_utf8_bytes": 3,
+        "processed_codepoints": 1,
+        "processed_utf8_bytes": 2,
+        "contains_non_ascii": true,
+        "normalization_changed": true,
+        "normalization": "nfc"
+      }
+    },
+    {
+      "name": "nfc_unchanged",
+      "operation": "process",
+      "input": "é",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "nfc"},
+      "expected": {
+        "processed_text": "é",
+        "original_codepoints": 1,
+        "original_utf8_bytes": 2,
+        "processed_codepoints": 1,
+        "processed_utf8_bytes": 2,
+        "contains_non_ascii": true,
+        "normalization_changed": false,
+        "normalization": "nfc"
+      }
+    },
+    {
+      "name": "codepoint_limit_exceeded",
+      "operation": "process_error",
+      "input": "abc",
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 2, "normalization": "none"},
+      "expected_error": "ProcessingLimitError"
+    },
+    {
+      "name": "utf8_limit_exceeded",
+      "operation": "process_error",
+      "input": "éé",
+      "config": {"max_utf8_bytes": 3, "max_codepoints": 1024, "normalization": "none"},
+      "expected_error": "ProcessingLimitError"
+    },
+    {
+      "name": "isolated_surrogate",
+      "operation": "process_error",
+      "input_codepoints": [55296],
+      "config": {"max_utf8_bytes": 4096, "max_codepoints": 1024, "normalization": "none"},
+      "expected_error": "InvalidUnicodeError"
+    }
+  ],
+  "indexing": [
+    {
+      "name": "unicode_codepoint_and_utf8_boundaries",
+      "text": "Aé e\u0301🙂👩‍💻",
+      "codepoint_to_utf8": [0, 1, 3, 4, 5, 7, 11, 15, 18, 22],
+      "utf8_to_codepoint": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "invalid_utf8_offsets": [2, 6, 8, 9, 10, 12, 13, 14, 16, 17, 19, 20, 21],
+      "spans": [
+        {"start": 0, "end": 0, "expected": ""},
+        {"start": 0, "end": 9, "expected": "Aé e\u0301🙂👩‍💻"},
+        {"start": 1, "end": 6, "expected": "é e\u0301🙂"}
+      ]
+    }
+  ]
+}
