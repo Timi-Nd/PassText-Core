@@ -49,6 +49,27 @@ cargo check --target wasm32-unknown-unknown --all-features
 Absence of that target is a local verification limitation and must not be
 reported as a successful Wasm build. CI installs the target explicitly.
 
+## Package and dependency checks
+
+Construct and inspect the exact distributable crate with locked dependency
+resolution:
+
+```text
+cargo package --list --locked
+cargo package --locked
+```
+
+After installing the RustSec `cargo-audit` tool, scan the lockfile and treat
+vulnerability and informational advisories as failures:
+
+```text
+cargo audit --deny warnings
+```
+
+The dependency-security workflow repeats the scan on dependency-file changes
+and on a weekly schedule. Advisory results are time-sensitive and must be
+refreshed immediately before publication.
+
 ## Python reference checks
 
 ```text

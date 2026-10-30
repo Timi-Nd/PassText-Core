@@ -11,8 +11,13 @@ include = [
     "/Cargo.toml",
     "/Cargo.lock",
     "/README.md",
+    "/CHANGELOG.md",
     "/src/**",
-    "/tests/**",
+    # Keep the Python-backed differential harness in the repository only. The
+    # published crate includes the self-contained tests and their shared data.
+    "/tests/integration.rs",
+    "/tests/portability.rs",
+    "/tests/properties.rs",
     "/benches/**",
     "/docs/**",
     "/passtext/tests/fixtures/rust_portability_vectors.json",

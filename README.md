@@ -12,6 +12,29 @@ reference. Rust and Python tests consume the same portability vectors at
 PassText Core deliberately does **not** score password strength, check breach
 databases, hash credentials, or implement authentication policy.
 
+## Toolchain and installation
+
+PassText Core uses the Rust 2021 edition, and CI tracks the stable Rust
+toolchain. The v0.1.0 release candidate is locally verified with `rustc
+1.96.0`. The project does not yet declare a minimum supported Rust version
+(MSRV); consumers using an older compiler should validate it in their own
+build matrix.
+
+After the project owner approves a license and the crate is published, add the
+release from crates.io:
+
+```toml
+[dependencies]
+passtext-core = "0.1.0"
+```
+
+Until then, use a local checkout for release-candidate evaluation:
+
+```toml
+[dependencies]
+passtext-core = { path = "../PassText-Core" }
+```
+
 ## Quick start
 
 Add this crate to a Rust project, then process borrowed text without copying it
@@ -61,6 +84,16 @@ The core has no platform-specific runtime dependency. CI also checks
 `wasm32-unknown-unknown`; a local WebAssembly build requires that target to be
 installed first.
 
+The v0.1.0 release-candidate matrix covers 54 ordinary Rust tests (including
+shared fixtures, generated properties, and a doctest), 214 explicit
+Python–Rust differential comparisons on matching Unicode 16.0.0 data, 35
+Python reference tests, documentation and package builds, and a
+`wasm32-unknown-unknown` compile check. A RustSec scan of the locked dependency
+graph found no known vulnerabilities or informational warnings; CI repeats the
+scan weekly and when dependency files change. See the [testing
+guide](docs/testing.md) for the commands and compatibility requirements behind
+those results.
+
 To run the reference suite:
 
 ```text
@@ -78,6 +111,8 @@ python -m pytest -q
 - [Security guarantees and limitations](docs/security.md)
 - [Unicode compatibility](docs/unicode-compatibility.md)
 - [Testing and portability](docs/testing.md)
+- [Changelog](CHANGELOG.md)
+- [v0.1.0 release-note draft](docs/releases/v0.1.0.md)
 
 ## Security boundary
 
@@ -86,6 +121,13 @@ access. Their diagnostics and metadata are redacted, but Rust memory safety is
 not secure erasure: borrowed strings cannot be zeroized by this crate, and
 owned immutable strings are not promised to be scrubbed. See the
 [security guide](docs/security.md) before integrating the library.
+
+The crate has not received an independent security audit. It does not estimate
+password strength, screen compromised-password sources, hash passwords, or
+provide authentication. Its Unicode normalization behavior is intentionally
+pinned to Unicode 16.0.0; see the
+[Unicode compatibility guide](docs/unicode-compatibility.md) before changing
+the normalization dependency or comparing results with older Python versions.
 
 ## Distribution note
 
